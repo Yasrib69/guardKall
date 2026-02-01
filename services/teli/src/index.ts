@@ -127,6 +127,38 @@ async function pushStatus(payload: Record<string, any>) {
   });
 }
 
+// Lookup all registered users (for multi-user call routing)
+async function getAllUsers(): Promise<Array<{ id: string; firstName: string; lastName: string; phoneNumber: string }>> {
+  try {
+    const res = await fetch(`${DATA_SERVICE_URL}/users`);
+    const data = await res.json();
+    if (data.ok && data.users) {
+      return data.users;
+    }
+  } catch (err) {
+    console.warn("[Users] Failed to fetch users:", err);
+  }
+  return [];
+}
+
+// Get the user to route calls/SMS to - uses logged-in user's phone
+// When a user signs up, their phone becomes the active destination
+async function getTargetUserPhone(): Promise<string> {
+  // Get users from database (ordered by CREATED_AT DESC, so newest first)
+  const users = await getAllUsers();
+
+  if (users.length > 0) {
+    // Use the most recent signup (first in the list = newest)
+    const activeUser = users[0];
+    console.log(`[Routing] Active user: ${activeUser.firstName} ${activeUser.lastName} → ${activeUser.phoneNumber}`);
+    return activeUser.phoneNumber;
+  }
+
+  // Fallback if no users registered
+  console.warn("[Routing] No users registered - SMS will be skipped");
+  return "";
+}
+
 app.get("/health", (_req, res) => {
   res.json({ ok: true, provider: "teli" });
 });

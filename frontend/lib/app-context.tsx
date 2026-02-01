@@ -227,13 +227,75 @@ export function AppProvider({ children }: { children: ReactNode }) {
     )
   }
 
+  // Wrapper that persists user to backend and updates Teli agent
+  const handleSetUser = async (newUser: User | null) => {
+    setUser(newUser)
+
+    if (newUser && newUser.phoneNumber) {
+      // Persist to Data Service
+      try {
+        await fetch("http://localhost:4003/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: newUser.email || "",
+            fullName: `${newUser.firstName} ${newUser.lastName}`,
+            phone: newUser.phoneNumber,
+            risk: "medium",
+            channel: "sms"
+          })
+        })
+        console.log(`[User] Saved to backend: ${newUser.firstName} ${newUser.phoneNumber}`)
+      } catch (err) {
+        console.warn("[User] Failed to persist:", err)
+      }
+
+      // Update Teli agent transfer number
+      try {
+        await fetch(
+          "https://teli-hackathon--transfer-message-service-fastapi-app.modal.run/v1/agents/agent_568188517d843c7f7a6e4433c7/tools",
+          {
+            method: "PATCH",
+            headers: {
+              "X-API-Key": "hackathon-sms-api-key-h4ck-2024-a1b2-c3d4e5f67890",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              tools: [
+                {
+                  type: "transfer_call",
+                  name: "transfer_to_support",
+                  description: "Transfer to human support team when the call is designated as safe or if the user asks for a human.",
+                  transfer_destination: {
+                    type: "predefined",
+                    number: newUser.phoneNumber,
+                    extension: "",
+                  },
+                  transfer_option: { type: "cold_transfer" },
+                },
+                {
+                  type: "end_call",
+                  name: "end_call_tool",
+                  description: "End the call when the screening is complete, the caller is identified as a scammer, or the conversation is over.",
+                },
+              ],
+            }),
+          }
+        )
+        console.log(`[User] Updated Teli transfer to: ${newUser.phoneNumber}`)
+      } catch (err) {
+        console.warn("[User] Failed to update Teli agent:", err)
+      }
+    }
+  }
+
   return (
     <AppContext.Provider
       value={{
         currentScreen,
         setCurrentScreen,
         user,
-        setUser,
+        setUser: handleSetUser,
         callLogs,
         setCallLogs,
         selectedCall,

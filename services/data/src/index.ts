@@ -375,6 +375,31 @@ app.post("/users", (req, res) => {
   });
 });
 
+// List all registered users (for call routing - newest first)
+app.get("/users", (req, res) => {
+  connection.execute({
+    sqlText: `SELECT * FROM ${T_USERS} ORDER BY CREATED_AT DESC`,
+    complete: (err, stmt, rows) => {
+      if (err) {
+        if (err.message.includes("does not exist")) {
+          return res.json({ ok: true, users: [] });
+        }
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+
+      const users = (rows || []).map((row: any) => ({
+        id: row.EMAIL, // Use email as ID
+        firstName: (row.FULL_NAME || "").split(" ")[0] || "",
+        lastName: (row.FULL_NAME || "").split(" ").slice(1).join(" ") || "",
+        email: row.EMAIL,
+        phoneNumber: row.PHONE,
+        createdAt: row.CREATED_AT
+      }));
+      res.json({ ok: true, users });
+    }
+  });
+});
+
 app.post("/events", (req, res) => {
   const payload = req.body || {};
   const { callSid, label, confidence, reasons } = payload;
