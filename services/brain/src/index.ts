@@ -27,46 +27,39 @@ Output JSON format:
 {
   "label": "SAFE" | "SUSPICIOUS" | "SCAM",
   "confidence": number (0.0 to 1.0),
+  "threat_score": number (0 to 100),
   "claimed_org": string | null,
-  "org_type": "bank" | "government" | "tech_support" | "utility" | "police" | "unknown" | null,
+  "org_type": "bank" | "government" | "tech_support" | "utility" | "police" | "friend" | "unknown" | null,
   "reasons": string[],
-  "action": "NONE" | "VERIFY" | "ALERT" | "TAKEOVER"
+  "action": "NONE" | "VERIFY" | "ALERT" | "TAKEOVER" | "HANGUP"
 }
 
 Field Definitions:
-- claimed_org: The specific organization the caller claims to represent (e.g., "Chase Bank", "IRS", "Microsoft"). Null if no claim made.
-- org_type: Category of the claimed organization. Use:
-  - "bank" for any financial institution
-  - "government" for IRS, SSA, or any government agency
-  - "tech_support" for Microsoft, Apple, or IT support calls
-  - "utility" for electric, gas, water companies
-  - "police" for law enforcement
-  - "unknown" if organization is claimed but category unclear
+- threat_score: 0-100 score indicating danger level.
+  - 0-20: Safe (Friends, verified businesses)
+  - 21-50: Low Risk (Unknown numbers, surveys)
+  - 51-79: Suspicious (Unsolicited offers, vague claims)
+  - 80-100: High Risk (Threats, urgent money demands, impersonation)
 
 Action Rules:
-- "NONE": Transcript seems safe, no action needed.
-- "VERIFY": Caller claims to be from an organization. Initiate verification questions.
-- "ALERT": Suspicious patterns detected but not confirmed scam.
-- "TAKEOVER": High-confidence scam detected (>0.85) OR User explicitly requested takeover.
+- "NONE": Score < 40. Transcript seems safe.
+- "VERIFY": Score 40-75. Caller claims to be from an organization or story is vague.
+- "ALERT": Score 76-85. suspicious patterns detected.
+- "TAKEOVER": Score > 85. Confirmed scam markers present.
 
 Voice Commands (Override Everything):
-- If the transcript contains "Guardkall, takeover" or "Guardkall, take over", IMMEDIATELY return action: "TAKEOVER".
-- If the transcript contains "Guardkall, stop" or "Guardkall, hang up", IMMEDATELY return action: "HANGUP".
+- If the transcript contains "Guardkall, takeover", IMMEDIATELY return action: "TAKEOVER".
+- If the transcript contains "Guardkall, stop", IMMEDIATELY return action: "HANGUP".
 
-Scam Heuristics:
-- Urgent demands for payment (gift cards, wire transfers, crypto).
-- Threats of arrest, legal action, or service disconnection.
-- Requests for sensitive info (SSN, OTPs, passwords, bank account numbers).
-- Pretending to be tech support (Microsoft/Apple) or government (IRS/Police).
+Scam Heuristics (+ Score):
+- Urgent demands for payment (gift cards, crypto) (+50 score)
+- Threats of arrest/legal action (+40 score)
+- Requests for sensitive info (SSN, OTPs) (+40 score)
+- Pretending to be tech support/Gov (+30 score)
 
-Verification Triggers (use action: "VERIFY"):
+Verification Triggers (Action: VERIFY):
 - Caller says "I'm calling from [organization]"
 - Caller claims to be from a bank, IRS, police, or tech support
-- Any institutional affiliation is mentioned
-
-Prioritize FALSE NEGATIVES (do not interrupt safe calls) over false positives.
-Only recommend "TAKEOVER" if confidence > 0.85 and clear scam markers are present.
-Use "VERIFY" when there's an organization claim that needs validation.
 `;
 
 async function analyzeWithOpenRouter(transcript: string) {

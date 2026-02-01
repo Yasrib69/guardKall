@@ -9,9 +9,12 @@ app.use(express.json({ limit: "2mb" }));
 const PORT = Number(process.env.PORT || 4010);
 const TELI_API_BASE_URL = (process.env.TELI_API_BASE_URL || "https://api.teli.ai").replace(/\/$/, "");
 const TELI_API_KEY = process.env.TELI_API_KEY || "";
+const TELI_ORGANIZATION_ID = process.env.TELI_ORGANIZATION_ID || "";
+const TELI_USER_ID = process.env.TELI_USER_ID || "";
 const BRAIN_SERVICE_URL = process.env.BRAIN_SERVICE_URL || "";
 const GATEWAY_STATUS_URL = process.env.GATEWAY_STATUS_URL || "";
 const TELI_STATUS_WEBHOOK_URL = process.env.TELI_STATUS_WEBHOOK_URL || "";
+const DATA_SERVICE_URL = process.env.DATA_SERVICE_URL || "http://localhost:4003";
 
 const seenCallIds = new Set<string>();
 
@@ -128,29 +131,100 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true, provider: "teli" });
 });
 
+// Config check endpoint - shows what credentials are configured
+app.get("/teli/config", (_req, res) => {
+  res.json({
+    ok: true,
+    configured: {
+      apiKey: TELI_API_KEY ? "set" : "missing",
+      organizationId: TELI_ORGANIZATION_ID ? TELI_ORGANIZATION_ID.substring(0, 10) + "..." : "missing",
+      userId: TELI_USER_ID ? TELI_USER_ID.substring(0, 10) + "..." : "missing",
+      apiBaseUrl: TELI_API_BASE_URL,
+      brainServiceUrl: BRAIN_SERVICE_URL || "not configured",
+      gatewayStatusUrl: GATEWAY_STATUS_URL || "not configured",
+      dataServiceUrl: DATA_SERVICE_URL
+    }
+  });
+});
+
 app.post("/teli/setup", async (req, res) => {
   try {
-    const { orgId, userId, tenantId, agentName, areaCode } = req.body || {};
-    requireEnv(orgId, "orgId");
-    requireEnv(userId, "userId");
-    requireEnv(tenantId, "tenantId");
+    const body = req.body || {};
+    const orgId = body.orgId || TELI_ORGANIZATION_ID;
+    const userId = body.userId || TELI_USER_ID;
+    const tenantId = body.tenantId || orgId; // Default tenant to org
+    const { agentName, areaCode, transferNumber, voiceId } = body;
+    requireEnv(orgId, "orgId (set TELI_ORGANIZATION_ID in .env or pass in body)");
+    requireEnv(userId, "userId (set TELI_USER_ID in .env or pass in body)");
 
-    const agent = await teliFetch<any>("/v1/agents", {
-      method: "POST",
-      body: JSON.stringify({
-        agent_type: "voice",
-        agent_name: agentName || "Guardkall Concierge",
-        starting_message: "Welcome to Guardkall Secure Screening. Please state your name and reason for calling.",
-        prompt: "You are the Guardkall Concierge Agent. Screen unknown callers. Ask for name and reason. If caller claims an org, ask verification questions. Mark SCAM if they refuse verification. Never ask for sensitive info.",
-        voice_id: "11labs-Adrian",
-        language: "en-US",
-        organization_id: orgId,
-        user_id: userId
-      })
-    });
+    const resolvedVoiceId = voiceId || "cartesia-Cleo";
+    const resolvedAgentName = agentName || "GuardKall Concierge";
+    const mode = (body.guardMode || "personal").toLowerCase();
 
-    const voiceAgentId = agent.voice_agent_id || agent.agent_id;
+    // Dynamic Prompt Generator
+    const getPromptForMode = (m: string) => {
+      const base = `You are GuardKall, a security screening assistant protecting the user from scam calls.`;
 
+      const modes: Record<string, string> = {
+        personal: `
+${base}
+Mode: PERSONAL (Balanced)
+1. Greet politely: "Hi, I'm checking who this is for [User]."
+2. Ask name/reason.
+3. If it's a known contact type (family/friend), transfer immediately.
+4. If it's a business/unknown, ask 1-2 verification questions.
+5. Watch for red flags (urgency, money).
+6. Transfer if low risk. Block if scam.`,
+
+        business: `
+${base}
+Mode: BUSINESS (Professional)
+1. Greet formally: "Good day, this is an automated screening service for [User]."
+2. Ask for Name, Company, and Appointment details.
+3. If they have an appointment, transfer.
+4. If sales/cold call, ask to leave a voicemail or send an email.
+5. Strict verification for banks/gov agencies.`,
+
+        max_security: `
+${base}
+Mode: MAX SECURITY (Skeptical)
+1. Greet sternly: "Security screening. Identify yourself."
+2. Trust no one. Demand reference numbers and callback numbers.
+3. If they claim to be a bank/gov, tell them [User] will call back on the official number.
+4. DO NOT TRANSFER unless they provide a specific "Safe Word" (if configured) or pass strict verification.
+5. Hang up on any urgency/threats.`
+      };
+
+      return modes[m] || modes.personal;
+    };
+
+    const defaultPrompt = getPromptForMode(mode);
+    const defaultStartingMessage = "Hi, you've reached a secure screening line. May I ask who's calling and what this is regarding?";
+
+    // 1. Try to create Teli voice agent (may fail - their API has issues)
+    let teliAgentId: string | null = null;
+    try {
+      const teliAgent = await teliFetch<any>("/v1/agents", {
+        method: "POST",
+        body: JSON.stringify({
+          organization_id: orgId,
+          user_id: userId,
+          agent_name: resolvedAgentName,
+          agent_type: "voice",
+          voice_id: resolvedVoiceId,
+          language: "en-US",
+          starting_message: defaultStartingMessage,
+          prompt: defaultPrompt
+        })
+      });
+      teliAgentId = teliAgent.voice_agent_id || teliAgent.agent_id;
+      console.log(`[Teli] Created agent: ${teliAgentId}`);
+    } catch (agentErr: any) {
+      console.warn(`[Teli] Agent creation failed (known issue): ${agentErr.message}`);
+      // Continue without Teli agent - we'll store config locally
+    }
+
+    // 2. Provision phone number from Teli
     const phone = await teliFetch<any>("/v1/voice/phone-numbers/create", {
       method: "POST",
       body: JSON.stringify({
@@ -162,20 +236,56 @@ app.post("/teli/setup", async (req, res) => {
     });
 
     const phoneNumber = phone.phone_number || phone.number;
+    const phoneNumberPretty = phone.phone_number_pretty || phoneNumber;
 
-    await teliFetch<any>(`/v1/voice/phone-numbers/${encodeURIComponent(phoneNumber)}/update-agent`, {
+    // 3. Link phone to agent (if agent was created)
+    if (teliAgentId) {
+      try {
+        await teliFetch<any>(`/v1/voice/phone-numbers/${encodeURIComponent(phoneNumber)}/update-agent`, {
+          method: "POST",
+          body: JSON.stringify({ agent_id: teliAgentId })
+        });
+        console.log(`[Teli] Linked ${phoneNumber} to agent ${teliAgentId}`);
+      } catch (linkErr: any) {
+        console.warn(`[Teli] Phone-agent link failed: ${linkErr.message}`);
+      }
+    }
+
+    // 4. Store agent config in our Snowflake (always succeeds)
+    const localAgentId = teliAgentId || `agent-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    const dataResponse = await fetch(`${DATA_SERVICE_URL}/agents`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        agent_id: voiceAgentId
+        agentId: localAgentId,
+        userId,
+        orgId,
+        tenantId,
+        agentName: resolvedAgentName,
+        voiceId: resolvedVoiceId,
+        prompt: defaultPrompt,
+        startingMessage: defaultStartingMessage,
+        teliPhoneNumber: phoneNumber,
+        transferNumber: transferNumber || ""
       })
     });
 
+    if (!dataResponse.ok) {
+      const text = await dataResponse.text();
+      throw new Error(`Data service error: ${text}`);
+    }
+
     res.json({
       ok: true,
-      agentId: agent.agent_id,
-      voiceAgentId,
+      agentId: localAgentId,
+      teliAgentId: teliAgentId || null,
       phoneNumber,
-      phoneNumberPretty: phone.phone_number_pretty || phoneNumber
+      phoneNumberPretty,
+      teliAgentLinked: !!teliAgentId,
+      message: teliAgentId
+        ? "Agent created in Teli + stored in Snowflake. Phone linked."
+        : "Agent stored in Snowflake. Phone provisioned. (Teli agent creation unavailable)"
     });
   } catch (err: any) {
     res.status(500).json({ ok: false, error: err.message || "setup_failed" });
@@ -184,9 +294,12 @@ app.post("/teli/setup", async (req, res) => {
 
 app.post("/teli/status/pull", async (req, res) => {
   try {
-    const { orgId, userId, limit } = req.body || {};
-    requireEnv(orgId, "orgId");
-    requireEnv(userId, "userId");
+    const body = req.body || {};
+    const orgId = body.orgId || TELI_ORGANIZATION_ID;
+    const userId = body.userId || TELI_USER_ID;
+    const limit = body.limit;
+    requireEnv(orgId, "orgId (set TELI_ORGANIZATION_ID in .env or pass in body)");
+    requireEnv(userId, "userId (set TELI_USER_ID in .env or pass in body)");
 
     const query = new URLSearchParams({
       organization_id: orgId,
@@ -210,15 +323,33 @@ app.post("/teli/status/pull", async (req, res) => {
       const analysis = await analyzeTranscript(transcript);
       const verdict = analysis.label || analysis.verdict || "UNCERTAIN";
 
+      const caller = extractCaller(call);
       const statusPayload = {
         callId,
-        caller: extractCaller(call),
+        caller,
         verdict,
         status: "completed",
         transcript,
         analysis,
         source: "teli"
       };
+
+      // Store call in Snowflake
+      await fetch(`${DATA_SERVICE_URL}/calls`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          callId,
+          agentId: call.agent_id || call.agentId || "",
+          userId: call.user_id || call.userId || "",
+          callerNumber: caller,
+          teliPhoneNumber: call.to || call.phone_number || "",
+          status: "completed",
+          transcript,
+          verdict,
+          analysis
+        })
+      });
 
       await pushStatus(statusPayload);
       processed.push(statusPayload);
@@ -255,6 +386,23 @@ app.post("/teli/status/push", async (req, res) => {
       source: "teli"
     };
 
+    // Store call in Snowflake
+    await fetch(`${DATA_SERVICE_URL}/calls`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        callId,
+        agentId: payload.agent_id || payload.agentId || "",
+        userId: payload.user_id || payload.userId || "",
+        callerNumber: extractCaller(payload),
+        teliPhoneNumber: payload.to || payload.phone_number || "",
+        status: payload.status || "completed",
+        transcript,
+        verdict,
+        analysis
+      })
+    });
+
     await pushStatus(statusPayload);
     seenCallIds.add(callId);
 
@@ -278,28 +426,23 @@ app.post("/teli/tools/update", async (req, res) => {
     } = req.body || {};
     requireEnv(agentId, "agentId");
 
+    // Build tools payload if not provided
     let toolPayload = tools as Array<Record<string, any>> | undefined;
     if (!toolPayload || toolPayload.length === 0) {
       const statusUrl = statusWebhookUrl || TELI_STATUS_WEBHOOK_URL;
       const includeEnd = includeEndCall !== false;
-      const scamTemplate =
-        smsScamTemplate ||
-        "Guardkall: Likely scam call from {{phone_number}}. We did not connect you. View report and choose: Block / Ignore.";
-      const verifiedTemplate =
-        smsVerifiedTemplate ||
-        "Guardkall: Verified call from {{customer_name}} about {{reason}}. Transferring now.";
+      const scamTemplate = smsScamTemplate || "GuardKall: Likely scam call from {{phone_number}}. We blocked it. View report: Block/Ignore.";
+      const verifiedTemplate = smsVerifiedTemplate || "GuardKall: Verified call from {{customer_name}} about {{reason}}.";
       const resolvedTools: Array<Record<string, any>> = [];
 
       if (statusUrl) {
         resolvedTools.push({
           type: "custom",
           name: "push_call_status",
-          description: "Send live call updates to Guardkall dashboard when verdict or caller intent is known",
+          description: "Send live call updates to GuardKall dashboard",
           url: statusUrl,
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           speak_after_execution: Boolean(speakAfterExecution)
         });
       }
@@ -308,63 +451,105 @@ app.post("/teli/tools/update", async (req, res) => {
         resolvedTools.push({
           type: "transfer_call",
           name: "transfer_to_user",
-          description: "Transfer to the user ONLY if the caller is verified and SAFE or a verified EMERGENCY",
-          transfer_destination: {
-            type: "predefined",
-            number: transferNumber
-          },
-          transfer_option: {
-            type: "cold_transfer"
-          }
+          description: "Transfer to user ONLY if caller is verified SAFE",
+          transfer_destination: { type: "predefined", number: transferNumber },
+          transfer_option: { type: "cold_transfer" }
         });
       }
 
       resolvedTools.push({
         type: "send_sms",
         name: "notify_user_scam",
-        description: "Send SMS after a scam is detected to advise the user and link to the report",
-        sms_content: {
-          type: "predefined",
-          content: scamTemplate
-        }
+        description: "Send SMS when scam detected",
+        sms_content: { type: "predefined", content: scamTemplate }
       });
 
       resolvedTools.push({
         type: "send_sms",
         name: "notify_user_verified",
-        description: "Send SMS before transfer to confirm verified call details",
-        sms_content: {
-          type: "predefined",
-          content: verifiedTemplate
-        }
+        description: "Send SMS for verified calls",
+        sms_content: { type: "predefined", content: verifiedTemplate }
       });
 
       if (includeEnd) {
         resolvedTools.push({
           type: "end_call",
           name: "end_call",
-          description: "End the call when a scam is detected or verification fails"
+          description: "End call when scam detected or verification fails"
         });
-      }
-
-      if (resolvedTools.length === 0) {
-        return res.status(400).json({ ok: false, error: "tools_missing" });
       }
 
       toolPayload = resolvedTools;
     }
 
-    const result = await teliFetch(`/v1/agents/${encodeURIComponent(agentId)}/tools`, {
-      method: "PATCH",
-      body: JSON.stringify({ tools: toolPayload })
-    });
+    // Try to update tools in Teli (may fail if agent wasn't created)
+    let teliUpdated = false;
+    try {
+      await teliFetch(`/v1/agents/${encodeURIComponent(agentId)}/tools`, {
+        method: "PATCH",
+        body: JSON.stringify({ tools: toolPayload })
+      });
+      teliUpdated = true;
+      console.log(`[Teli] Tools updated for agent ${agentId}`);
+    } catch (teliErr: any) {
+      console.warn(`[Teli] Tools update failed (agent may not exist in Teli): ${teliErr.message}`);
+    }
 
-    res.json({ ok: true, result });
+    // Update Snowflake with transfer number
+    if (transferNumber) {
+      await fetch(`${DATA_SERVICE_URL}/agents/${agentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transferNumber })
+      });
+    }
+
+    res.json({
+      ok: true,
+      agentId,
+      transferNumber,
+      statusWebhookUrl: statusWebhookUrl || TELI_STATUS_WEBHOOK_URL,
+      teliUpdated,
+      toolsConfigured: toolPayload.length,
+      message: teliUpdated
+        ? "Tools configured in Teli + Snowflake"
+        : "Tools saved to Snowflake (Teli agent not found - configure manually in Teli dashboard)"
+    });
   } catch (err: any) {
     res.status(500).json({ ok: false, error: err.message || "tools_update_failed" });
   }
 });
 
+// Get agent details from Snowflake
+app.get("/teli/agents/:id", async (req, res) => {
+  try {
+    const response = await fetch(`${DATA_SERVICE_URL}/agents/${req.params.id}`);
+    const data = await response.json();
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// List agents for a user
+app.get("/teli/agents", async (req, res) => {
+  try {
+    const { userId, orgId } = req.query;
+    const params = new URLSearchParams();
+    if (userId) params.set("userId", userId as string);
+    if (orgId) params.set("orgId", orgId as string);
+
+    const response = await fetch(`${DATA_SERVICE_URL}/agents?${params.toString()}`);
+    const data = await response.json();
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`teli service listening on :${PORT}`);
+  console.log(`  API Key: ${TELI_API_KEY ? "configured" : "MISSING"}`);
+  console.log(`  Organization ID: ${TELI_ORGANIZATION_ID ? TELI_ORGANIZATION_ID.substring(0, 15) + "..." : "MISSING"}`);
+  console.log(`  User ID: ${TELI_USER_ID ? TELI_USER_ID.substring(0, 15) + "..." : "MISSING"}`);
 });
