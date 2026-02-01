@@ -1,0 +1,22 @@
+{
+    "tools": [
+        {
+            "type": "transfer_call",
+            "name": "transfer_to_support",
+            "description": "Transfer to human support team when the call is designated as safe or if the user asks for a human.",
+            "transfer_destination": {
+                "type": "predefined",
+                "number": "+17343400298",
+                "extension": ""
+            },
+            "transfer_option": {
+                "type": "cold_transfer"
+            }
+        },
+        {
+            "type": "end_call",
+            "name": "end_call_tool",
+            "description": "End the call when the screening is complete, the caller is identified as a scammer, or the conversation is over."
+        }
+    ]
+}
