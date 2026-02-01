@@ -1,0 +1,16 @@
+[Unit]
+Description=GuardKall Frontend
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/guardkall-frontend
+Environment=NODE_ENV=production
+Environment=PORT=3000
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

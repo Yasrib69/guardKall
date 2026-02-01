@@ -69,12 +69,9 @@ export function Onboarding() {
   const [showSignIn, setShowSignIn] = useState(false)
   const [simulatorComplete, setSimulatorComplete] = useState(false)
 
-  // Generate GuardKall number on mount
+  // Real GuardKall/Teli phone number
   useEffect(() => {
-    const areaCode = Math.floor(Math.random() * 900) + 100
-    const prefix = Math.floor(Math.random() * 900) + 100
-    const lineNumber = Math.floor(Math.random() * 9000) + 1000
-    setGuardKallNumber(`+1 (${areaCode}) ${prefix}-${lineNumber}`)
+    setGuardKallNumber("+1 (415) 360-8472")
   }, [])
 
   const stageOrder: OnboardingStage[] = [
@@ -176,13 +173,38 @@ export function Onboarding() {
     }
   }
 
-  const completeOnboarding = () => {
+  const DATA_SERVICE_URL = process.env.NEXT_PUBLIC_DATA_SERVICE_URL || "http://159.65.169.230:4003"
+
+  const completeOnboarding = async () => {
+    const fullName = `${firstName.trim()} ${lastName.trim()}`
+    const formattedPhone = `+1 ${phoneNumber}`
+
+    try {
+      // Register user in Snowflake
+      // Teli service uses "last signup wins" - automatically routes to newest user
+      await fetch(`${DATA_SERVICE_URL}/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName,
+          email: email.trim() || "",
+          phone: formattedPhone,
+          password: password,
+          risk: "",
+          channel: ""
+        })
+      })
+    } catch (err) {
+      console.error("Failed to register user:", err)
+      // Continue anyway - don't block the user
+    }
+
     const newUser = {
       id: Math.random().toString(36).substr(2, 9),
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.trim() || undefined,
-      phoneNumber: `+1 ${phoneNumber}`,
+      phoneNumber: formattedPhone,
       guardKallNumber,
       isNewUser: false,
       setupComplete: true,
@@ -208,10 +230,10 @@ export function Onboarding() {
         <div
           key={i}
           className={`absolute rounded-full ${i % 3 === 0
-              ? "w-2 h-2 bg-green-400/20"
-              : i % 3 === 1
-                ? "w-1 h-1 bg-emerald-500/30"
-                : "w-1.5 h-1.5 bg-teal-400/25"
+            ? "w-2 h-2 bg-green-400/20"
+            : i % 3 === 1
+              ? "w-1 h-1 bg-emerald-500/30"
+              : "w-1.5 h-1.5 bg-teal-400/25"
             }`}
           style={{
             left: `${Math.random() * 100}%`,
@@ -483,12 +505,15 @@ export function Onboarding() {
                   const fullCode = getFullDialCode(carrier)
                   const isSelected = selectedCarrier === carrier.carrier
                   return (
-                    <button
+                    <div
                       key={carrier.carrier}
                       onClick={() => setSelectedCarrier(carrier.carrier)}
-                      className={`w-full p-4 rounded-2xl border transition-all duration-200 text-left ${isSelected
-                          ? "bg-primary/10 border-primary"
-                          : "bg-card border-border hover:border-primary/50"
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === 'Enter' && setSelectedCarrier(carrier.carrier)}
+                      className={`w-full p-4 rounded-2xl border transition-all duration-200 text-left cursor-pointer ${isSelected
+                        ? "bg-primary/10 border-primary"
+                        : "bg-card border-border hover:border-primary/50"
                         }`}
                     >
                       <div className="flex items-center justify-between">
@@ -518,7 +543,7 @@ export function Onboarding() {
                           </div>
                         </div>
                       )}
-                    </button>
+                    </div>
                   )
                 })}
               </div>
@@ -591,10 +616,10 @@ export function Onboarding() {
                 <div
                   key={s}
                   className={`h-1.5 rounded-full transition-all duration-300 ${i < currentStageIndex - 1
-                      ? "w-6 bg-primary"
-                      : i === currentStageIndex - 1
-                        ? "w-8 bg-gradient-to-r from-green-500 to-emerald-500"
-                        : "w-1.5 bg-secondary"
+                    ? "w-6 bg-primary"
+                    : i === currentStageIndex - 1
+                      ? "w-8 bg-gradient-to-r from-green-500 to-emerald-500"
+                      : "w-1.5 bg-secondary"
                     }`}
                 />
               ))}

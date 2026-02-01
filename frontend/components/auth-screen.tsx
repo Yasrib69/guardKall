@@ -36,10 +36,7 @@ export function AuthScreen() {
   }
 
   const generateGuardKallNumber = () => {
-    const areaCode = Math.floor(Math.random() * 900) + 100
-    const prefix = Math.floor(Math.random() * 900) + 100
-    const lineNumber = Math.floor(Math.random() * 9000) + 1000
-    return `+1 (${areaCode}) ${prefix}-${lineNumber}`
+    return "+1 (415) 360-8472"
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -112,8 +109,8 @@ export function AuthScreen() {
               type="button"
               onClick={() => setIsSignUp(true)}
               className={`flex-1 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200 ${isSignUp
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-                  : "bg-secondary text-muted-foreground hover:text-foreground"
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
                 }`}
             >
               Create Account
@@ -122,8 +119,8 @@ export function AuthScreen() {
               type="button"
               onClick={() => setIsSignUp(false)}
               className={`flex-1 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200 ${!isSignUp
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-                  : "bg-secondary text-muted-foreground hover:text-foreground"
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
                 }`}
             >
               Sign In

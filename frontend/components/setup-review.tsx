@@ -42,7 +42,7 @@ export function SetupReview() {
   const [silenceEnabled, setSilenceEnabled] = useState(false)
 
   const getFullDialCode = (carrier: typeof CARRIERS[0]) => {
-    const guardKallNum = user?.guardKallNumber?.replace(/\D/g, "") || "7868525487"
+    const guardKallNum = user?.guardKallNumber?.replace(/\D/g, "") || "4153608472"
     if (carrier.name === "Verizon" || carrier.name === "Sprint") {
       return `${carrier.code}${guardKallNum}`
     }
@@ -83,7 +83,7 @@ export function SetupReview() {
           <div className="text-center">
             <p className="text-sm text-muted-foreground mb-2">Your GuardKall Number</p>
             <p className="text-3xl font-bold font-mono text-primary tracking-wider">
-              {user?.guardKallNumber || "+1 (786) 852-5487"}
+              {user?.guardKallNumber || "+1 (415) 360-8472"}
             </p>
             <p className="text-sm text-muted-foreground mt-2">
               This is your AI-protected line that screens unknown callers
@@ -115,7 +115,7 @@ export function SetupReview() {
               <p className="text-sm text-muted-foreground">
                 Enable Conditional Call Forwarding to route unanswered calls to GuardKall. Select your carrier:
               </p>
-              
+
               {CARRIERS.map((carrier) => {
                 const fullCode = getFullDialCode(carrier)
                 return (
@@ -187,7 +187,7 @@ export function SetupReview() {
               <p className="text-sm text-muted-foreground mb-4">
                 Go to Settings {">"} Phone {">"} Silence Unknown Callers and enable the toggle.
               </p>
-              
+
               <button
                 onClick={() => setShowSimulator(true)}
                 className="w-full p-4 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all flex items-center justify-center gap-3 group"
@@ -209,10 +209,10 @@ export function SetupReview() {
               >
                 Close
               </button>
-              <IPhoneSimulator 
+              <IPhoneSimulator
                 onComplete={() => {
                   setTimeout(() => setShowSimulator(false), 2000)
-                }} 
+                }}
                 isActive={showSimulator}
               />
             </div>

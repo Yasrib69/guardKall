@@ -10,27 +10,7 @@ import { Label } from "@/components/ui/label"
 import { GuardKallLogo } from "@/components/guardkall-logo"
 import { Phone, Lock, Eye, EyeOff, X, AlertCircle } from "lucide-react"
 
-// Mock registered users database (in production, this would be server-side)
-const REGISTERED_USERS = [
-  {
-    id: "user1",
-    firstName: "John",
-    lastName: "Doe",
-    email: "john@example.com",
-    phoneNumber: "(555) 123-4567",
-    password: "password123",
-    guardKallNumber: "+1 (786) 852-5487",
-  },
-  {
-    id: "user2",
-    firstName: "Jane",
-    lastName: "Smith",
-    email: "jane@example.com",
-    phoneNumber: "(555) 987-6543",
-    password: "securepass456",
-    guardKallNumber: "+1 (786) 555-1234",
-  },
-]
+const DATA_SERVICE_URL = process.env.NEXT_PUBLIC_DATA_SERVICE_URL || "http://159.65.169.230:4003"
 
 interface SignInModalProps {
   isOpen: boolean
@@ -84,55 +64,62 @@ export function SignInModal({ isOpen, onClose }: SignInModalProps) {
 
     setIsLoading(true)
 
-    // Simulate network delay for security
-    await new Promise((resolve) => setTimeout(resolve, 800))
-
-    // Check against registered users
-    const cleanPhone = phoneNumber.replace(/\D/g, "")
-    const user = REGISTERED_USERS.find((u) => {
-      const userCleanPhone = u.phoneNumber.replace(/\D/g, "")
-      return userCleanPhone === cleanPhone && u.password === password
-    })
-
-    if (user) {
-      // Successful login
-      setUser({
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phoneNumber: `+1 ${user.phoneNumber}`,
-        guardKallNumber: user.guardKallNumber,
-        isNewUser: false,
-        setupComplete: true,
+    try {
+      const response = await fetch(`${DATA_SERVICE_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: phoneNumber,
+          password: password
+        })
       })
-      setIsLoading(false)
-      onClose()
-      setCurrentScreen("dashboard")
-    } else {
-      // Failed login
-      const newAttempts = attempts + 1
-      setAttempts(newAttempts)
 
-      if (newAttempts >= 3) {
-        setIsLocked(true)
-        let timeLeft = 30
-        setLockTimer(timeLeft)
+      const data = await response.json()
 
-        const timer = setInterval(() => {
-          timeLeft -= 1
-          setLockTimer(timeLeft)
-          if (timeLeft <= 0) {
-            clearInterval(timer)
-            setIsLocked(false)
-            setAttempts(0)
-          }
-        }, 1000)
-
-        setError("Too many failed attempts. Please wait 30 seconds.")
+      if (data.ok && data.user) {
+        // Successful login from Snowflake
+        setUser({
+          id: data.user.id,
+          firstName: data.user.firstName,
+          lastName: data.user.lastName,
+          email: data.user.email,
+          phoneNumber: data.user.phoneNumber,
+          guardKallNumber: "+1 (415) 360-8472", // Teli number
+          isNewUser: false,
+          setupComplete: true,
+        })
+        setIsLoading(false)
+        onClose()
+        setCurrentScreen("dashboard")
       } else {
-        setError(`Invalid phone number or password. ${3 - newAttempts} attempts remaining.`)
+        // Failed login
+        const newAttempts = attempts + 1
+        setAttempts(newAttempts)
+
+        if (newAttempts >= 3) {
+          setIsLocked(true)
+          let timeLeft = 30
+          setLockTimer(timeLeft)
+
+          const timer = setInterval(() => {
+            timeLeft -= 1
+            setLockTimer(timeLeft)
+            if (timeLeft <= 0) {
+              clearInterval(timer)
+              setIsLocked(false)
+              setAttempts(0)
+            }
+          }, 1000)
+
+          setError("Too many failed attempts. Please wait 30 seconds.")
+        } else {
+          setError(`Invalid phone number or password. ${3 - newAttempts} attempts remaining.`)
+        }
+        setIsLoading(false)
       }
+    } catch (err) {
+      console.error("Login error:", err)
+      setError("Unable to connect to server. Please try again.")
       setIsLoading(false)
     }
   }
@@ -257,13 +244,6 @@ export function SignInModal({ isOpen, onClose }: SignInModalProps) {
               >
                 Create Account
               </button>
-            </p>
-          </div>
-
-          {/* Demo Hint */}
-          <div className="mt-4 p-3 bg-secondary/50 rounded-xl">
-            <p className="text-xs text-muted-foreground text-center">
-              Demo: Use (555) 123-4567 / password123
             </p>
           </div>
         </div>

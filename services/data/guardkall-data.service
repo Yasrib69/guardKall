@@ -1,0 +1,15 @@
+[Unit]
+Description=GuardKall Data Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/guardkall-data
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node dist/index.js
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

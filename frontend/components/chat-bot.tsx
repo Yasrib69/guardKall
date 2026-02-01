@@ -50,7 +50,8 @@ export function ChatBot() {
     setIsLoading(true)
 
     try {
-      const response = await fetch("http://127.0.0.1:4001/chat", {
+      const BRAIN_SERVICE_URL = process.env.NEXT_PUBLIC_BRAIN_SERVICE_URL || "http://159.65.169.230:4001"
+      const response = await fetch(`${BRAIN_SERVICE_URL}/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

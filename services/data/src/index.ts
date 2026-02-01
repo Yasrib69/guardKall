@@ -320,15 +320,16 @@ app.patch("/calls/:id", (req, res) => {
 
 app.post("/users", (req, res) => {
   const payload = req.body || {};
-  const { fullName, email, phone, risk, channel } = payload;
-  console.log(`[Data] Registering user: ${email}`);
+  const { fullName, email, phone, password, risk, channel } = payload;
+  console.log(`[Data] Registering user: ${phone}`);
 
-  // First, ensure table exists
+  // First, ensure table exists with PASSWORD field
   const createTableSql = `
     CREATE TABLE IF NOT EXISTS ${T_USERS} (
       EMAIL STRING,
       FULL_NAME STRING,
-      PHONE STRING,
+      PHONE STRING PRIMARY KEY,
+      PASSWORD STRING,
       RISK_SCENARIO STRING,
       ALERT_CHANNEL STRING,
       CREATED_AT TIMESTAMP_NTZ
@@ -346,14 +347,15 @@ app.post("/users", (req, res) => {
 
       // Then insert the user
       const insertSql = `
-        INSERT INTO ${T_USERS} (EMAIL, FULL_NAME, PHONE, RISK_SCENARIO, ALERT_CHANNEL, CREATED_AT)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP())
+        INSERT INTO ${T_USERS} (EMAIL, FULL_NAME, PHONE, PASSWORD, RISK_SCENARIO, ALERT_CHANNEL, CREATED_AT)
+        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP())
       `;
 
       const binds = [
         email || "",
         fullName || "",
         phone || "",
+        password || "",
         risk || "",
         channel || ""
       ];
@@ -366,9 +368,60 @@ app.post("/users", (req, res) => {
             console.error("Snowflake user insert error:", insertErr.message);
             res.status(500).json({ ok: false, error: insertErr.message });
           } else {
-            console.log(`[Data] Registered user ${email}`);
+            console.log(`[Data] Registered user ${phone}`);
             res.json({ ok: true });
           }
+        }
+      });
+    }
+  });
+});
+
+// Login endpoint - authenticate user against Snowflake
+app.post("/login", (req, res) => {
+  const { phone, password } = req.body || {};
+  console.log(`[Data] Login attempt for: ${phone}`);
+
+  if (!phone || !password) {
+    return res.status(400).json({ ok: false, error: "Phone and password required" });
+  }
+
+  // Clean phone number (remove formatting)
+  const cleanPhone = phone.replace(/\D/g, "");
+
+  connection.execute({
+    sqlText: `SELECT * FROM ${T_USERS} WHERE REPLACE(PHONE, ' ', '') LIKE '%${cleanPhone}%'`,
+    complete: (err, stmt, rows) => {
+      if (err) {
+        if (err.message.includes("does not exist")) {
+          return res.status(401).json({ ok: false, error: "Invalid credentials" });
+        }
+        console.error("Login query error:", err.message);
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+
+      if (!rows || rows.length === 0) {
+        return res.status(401).json({ ok: false, error: "Invalid credentials" });
+      }
+
+      const user = rows[0] as any;
+
+      // Check password
+      if (user.PASSWORD !== password) {
+        return res.status(401).json({ ok: false, error: "Invalid credentials" });
+      }
+
+      // Success - return user data
+      console.log(`[Data] Login successful for ${phone}`);
+      res.json({
+        ok: true,
+        user: {
+          id: user.PHONE,
+          firstName: (user.FULL_NAME || "").split(" ")[0] || "",
+          lastName: (user.FULL_NAME || "").split(" ").slice(1).join(" ") || "",
+          email: user.EMAIL,
+          phoneNumber: user.PHONE,
+          createdAt: user.CREATED_AT
         }
       });
     }
