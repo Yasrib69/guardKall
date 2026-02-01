@@ -4,10 +4,11 @@ import { AppProvider, useApp } from "@/lib/app-context"
 import { LandingPage } from "@/components/landing-page"
 import { AuthScreen } from "@/components/auth-screen"
 import { Onboarding } from "@/components/onboarding"
-import { SetupWizard } from "@/components/setup-wizard" // Import SetupWizard
+import { SetupWizard } from "@/components/setup-wizard"
 import { RecentCallsDashboard } from "@/components/recent-calls-dashboard"
 import { TranscriptDetail } from "@/components/transcript-detail"
-import { SetupReview } from "@/components/setup-review" // Declare SetupReview
+import { SetupReview } from "@/components/setup-review"
+import { ChatBot } from "@/components/chat-bot"
 
 function AppContent() {
   const { currentScreen } = useApp()
@@ -34,6 +35,7 @@ export default function Home() {
   return (
     <AppProvider>
       <AppContent />
+      <ChatBot />
     </AppProvider>
   )
 }
