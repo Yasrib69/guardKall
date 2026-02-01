@@ -111,22 +111,20 @@ export function AuthScreen() {
             <button
               type="button"
               onClick={() => setIsSignUp(true)}
-              className={`flex-1 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200 ${
-                isSignUp
+              className={`flex-1 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200 ${isSignUp
                   ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
                   : "bg-secondary text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               Create Account
             </button>
             <button
               type="button"
               onClick={() => setIsSignUp(false)}
-              className={`flex-1 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200 ${
-                !isSignUp
+              className={`flex-1 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200 ${!isSignUp
                   ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
                   : "bg-secondary text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               Sign In
             </button>

@@ -118,7 +118,7 @@ export function SignInModal({ isOpen, onClose }: SignInModalProps) {
         setIsLocked(true)
         let timeLeft = 30
         setLockTimer(timeLeft)
-        
+
         const timer = setInterval(() => {
           timeLeft -= 1
           setLockTimer(timeLeft)
@@ -142,11 +142,11 @@ export function SignInModal({ isOpen, onClose }: SignInModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-background/80 backdrop-blur-sm"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="relative w-full max-w-md mx-4 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Close button */}

@@ -207,13 +207,12 @@ export function Onboarding() {
       {[...Array(30)].map((_, i) => (
         <div
           key={i}
-          className={`absolute rounded-full ${
-            i % 3 === 0 
-              ? "w-2 h-2 bg-green-400/20" 
-              : i % 3 === 1 
+          className={`absolute rounded-full ${i % 3 === 0
+              ? "w-2 h-2 bg-green-400/20"
+              : i % 3 === 1
                 ? "w-1 h-1 bg-emerald-500/30"
                 : "w-1.5 h-1.5 bg-teal-400/25"
-          }`}
+            }`}
           style={{
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
@@ -282,7 +281,7 @@ export function Onboarding() {
                   Sign in
                 </button>
               </p>
-              
+
               {/* Sign In Modal */}
               <SignInModal isOpen={showSignIn} onClose={() => setShowSignIn(false)} />
             </div>
@@ -487,11 +486,10 @@ export function Onboarding() {
                     <button
                       key={carrier.carrier}
                       onClick={() => setSelectedCarrier(carrier.carrier)}
-                      className={`w-full p-4 rounded-2xl border transition-all duration-200 text-left ${
-                        isSelected
+                      className={`w-full p-4 rounded-2xl border transition-all duration-200 text-left ${isSelected
                           ? "bg-primary/10 border-primary"
                           : "bg-card border-border hover:border-primary/50"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-foreground">{carrier.carrier}</span>
@@ -539,10 +537,10 @@ export function Onboarding() {
                   Follow the interactive guide below and replicate the exact steps on your real iPhone
                 </p>
               </div>
-              
+
               <div className="w-full flex justify-center">
-                <IPhoneSimulator 
-                  onComplete={() => setSimulatorComplete(true)} 
+                <IPhoneSimulator
+                  onComplete={() => setSimulatorComplete(true)}
                   isActive={stage === "silence-callers"}
                 />
               </div>
@@ -592,13 +590,12 @@ export function Onboarding() {
               {stageOrder.slice(1, -1).map((s, i) => (
                 <div
                   key={s}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    i < currentStageIndex - 1
+                  className={`h-1.5 rounded-full transition-all duration-300 ${i < currentStageIndex - 1
                       ? "w-6 bg-primary"
                       : i === currentStageIndex - 1
                         ? "w-8 bg-gradient-to-r from-green-500 to-emerald-500"
                         : "w-1.5 bg-secondary"
-                  }`}
+                    }`}
                 />
               ))}
             </div>

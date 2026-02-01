@@ -50,20 +50,18 @@ function CallLogItem({ call, onClick }: { call: CallLog; onClick: () => void }) 
         <TooltipTrigger asChild>
           <button
             onClick={onClick}
-            className={`w-full p-4 rounded-xl border transition-all duration-200 text-left group ${
-              isPotentialScammer
-                ? "bg-destructive/5 border-destructive/20 hover:border-destructive/40 hover:bg-destructive/10"
-                : "bg-card border-border hover:border-primary/40 hover:bg-secondary/30"
-            }`}
+            className={`w-full p-4 rounded-xl border transition-all duration-200 text-left group ${isPotentialScammer
+              ? "bg-destructive/5 border-destructive/20 hover:border-destructive/40 hover:bg-destructive/10"
+              : "bg-card border-border hover:border-primary/40 hover:bg-secondary/30"
+              }`}
           >
             <div className="flex items-start gap-4">
               {/* Status Icon */}
               <div
-                className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                  isPotentialScammer
-                    ? "bg-destructive/10 text-destructive"
-                    : "bg-primary/10 text-primary"
-                }`}
+                className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isPotentialScammer
+                  ? "bg-destructive/10 text-destructive"
+                  : "bg-primary/10 text-primary"
+                  }`}
               >
                 {isPotentialScammer ? (
                   <ShieldAlert className="w-6 h-6" />
@@ -77,11 +75,10 @@ function CallLogItem({ call, onClick }: { call: CallLog; onClick: () => void }) 
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-semibold text-foreground font-mono">{call.phoneNumber}</span>
                   <span
-                    className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                      isPotentialScammer
-                        ? "bg-destructive/20 text-destructive"
-                        : "bg-primary/20 text-primary"
-                    }`}
+                    className={`px-2 py-0.5 text-xs font-medium rounded-full ${isPotentialScammer
+                      ? "bg-destructive/20 text-destructive"
+                      : "bg-primary/20 text-primary"
+                      }`}
                   >
                     {isPotentialScammer ? "Potential Scammer" : "Verified"}
                   </span>
@@ -104,7 +101,8 @@ function CallLogItem({ call, onClick }: { call: CallLog; onClick: () => void }) 
           </button>
         </TooltipTrigger>
         <TooltipContent
-          side="right"
+          side="bottom"
+          align="center"
           className="max-w-sm p-4 bg-popover border border-border shadow-xl"
           sideOffset={8}
         >
@@ -245,31 +243,28 @@ export function RecentCallsDashboard() {
         <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
           <button
             onClick={() => setFilter("all")}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
-              filter === "all"
-                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-                : "bg-secondary text-muted-foreground hover:text-foreground"
-            }`}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${filter === "all"
+              ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+              : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
           >
             All Calls ({callLogs.length})
           </button>
           <button
             onClick={() => setFilter("verified")}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
-              filter === "verified"
-                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-                : "bg-secondary text-muted-foreground hover:text-foreground"
-            }`}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${filter === "verified"
+              ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+              : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
           >
             Verified ({verifiedCount})
           </button>
           <button
             onClick={() => setFilter("scammer")}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
-              filter === "scammer"
-                ? "bg-destructive text-destructive-foreground shadow-lg shadow-destructive/25"
-                : "bg-secondary text-muted-foreground hover:text-foreground"
-            }`}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${filter === "scammer"
+              ? "bg-destructive text-destructive-foreground shadow-lg shadow-destructive/25"
+              : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
           >
             Potential Scammers ({scammerCount})
           </button>
