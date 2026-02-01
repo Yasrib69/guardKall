@@ -8,8 +8,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Guardkall - AI Scam Call Interceptor',
-  description: 'Let scammers talk to your AI bodyguard. Real-time call protection that wastes their time, not yours.',
+  title: 'GuardKall - AI Call Protection',
+  description: 'Protect yourself from scam calls with AI-powered call screening',
   generator: 'v0.app',
   icons: {
     icon: [
