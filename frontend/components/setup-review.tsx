@@ -4,7 +4,8 @@ import { useState } from "react"
 import { useApp } from "@/lib/app-context"
 import { Button } from "@/components/ui/button"
 import { GuardKallLogo } from "@/components/guardkall-logo"
-import { ArrowLeft, Phone, Copy, Check, ChevronDown, ChevronUp } from "lucide-react"
+import { ArrowLeft, Phone, Copy, Check, ChevronDown, ChevronUp, Smartphone } from "lucide-react"
+import { IPhoneSimulator } from "@/components/iphone-simulator"
 
 const CARRIERS = [
   {
@@ -36,8 +37,9 @@ const CARRIERS = [
 export function SetupReview() {
   const { user, setCurrentScreen } = useApp()
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
-  const [silenceEnabled, setSilenceEnabled] = useState(false)
   const [expandedSection, setExpandedSection] = useState<string | null>("forwarding")
+  const [showSimulator, setShowSimulator] = useState(false)
+  const [silenceEnabled, setSilenceEnabled] = useState(false)
 
   const getFullDialCode = (carrier: typeof CARRIERS[0]) => {
     const guardKallNum = user?.guardKallNumber?.replace(/\D/g, "") || "7868525487"
@@ -182,55 +184,40 @@ export function SetupReview() {
 
           {expandedSection === "silence" && (
             <div className="px-5 pb-5">
-              {/* Interactive Settings Card */}
-              <div className="bg-secondary/50 border border-border rounded-xl overflow-hidden">
-                {/* Settings Header */}
-                <div className="flex items-center gap-3 p-4 border-b border-border">
-                  <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center">
-                    <Phone className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="font-semibold text-foreground">Settings</span>
-                </div>
-                
-                {/* Toggle Row */}
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-medium text-foreground">Silence Unknown Callers</span>
-                    <button
-                      onClick={() => setSilenceEnabled(!silenceEnabled)}
-                      className={`relative w-14 h-8 rounded-full transition-all duration-300 ${
-                        silenceEnabled 
-                          ? "bg-gradient-to-r from-green-500 to-emerald-500" 
-                          : "bg-muted"
-                      }`}
-                    >
-                      <div
-                        className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 ${
-                          silenceEnabled ? "left-7" : "left-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Calls from unknown numbers will be silenced, sent to voicemail, and displayed on the Recents list.
-                  </p>
-                </div>
-              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Go to Settings {">"} Phone {">"} Silence Unknown Callers and enable the toggle.
+              </p>
               
-              {/* Hint Text */}
-              <div className="mt-4 text-center">
-                {silenceEnabled ? (
-                  <div className="flex items-center justify-center gap-2 text-primary">
-                    <Check className="w-5 h-5" />
-                    <span className="font-medium">Perfect! Make sure this is enabled in your real settings.</span>
-                  </div>
-                ) : (
-                  <p className="text-primary">Tap the toggle above to test it</p>
-                )}
-              </div>
+              <button
+                onClick={() => setShowSimulator(true)}
+                className="w-full p-4 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all flex items-center justify-center gap-3 group"
+              >
+                <Smartphone className="w-5 h-5 text-primary" />
+                <span className="font-medium text-primary">View Interactive Guide</span>
+              </button>
             </div>
           )}
         </div>
+
+        {/* iPhone Simulator Modal */}
+        {showSimulator && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="relative">
+              <button
+                onClick={() => setShowSimulator(false)}
+                className="absolute -top-12 right-0 text-white/70 hover:text-white text-sm font-medium"
+              >
+                Close
+              </button>
+              <IPhoneSimulator 
+                onComplete={() => {
+                  setTimeout(() => setShowSimulator(false), 2000)
+                }} 
+                isActive={showSimulator}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Rule of Thumb */}
         <div className="p-5 bg-primary/5 border border-primary/20 rounded-2xl">

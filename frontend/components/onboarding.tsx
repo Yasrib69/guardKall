@@ -24,6 +24,7 @@ import {
 } from "lucide-react"
 import { GuardKallLogo } from "@/components/guardkall-logo"
 import { SignInModal } from "@/components/sign-in-modal"
+import { IPhoneSimulator } from "@/components/iphone-simulator"
 
 type OnboardingStage =
   | "welcome"
@@ -66,6 +67,7 @@ export function Onboarding() {
   const [copiedCode, setCopiedCode] = useState(false)
   const [silenceEnabled, setSilenceEnabled] = useState(false)
   const [showSignIn, setShowSignIn] = useState(false)
+  const [simulatorComplete, setSimulatorComplete] = useState(false)
 
   // Generate GuardKall number on mount
   useEffect(() => {
@@ -189,28 +191,34 @@ export function Onboarding() {
     setCurrentScreen("dashboard")
   }
 
-  // Animation classes
+  // Animation classes - Apple-like smooth transitions
   const getAnimationClass = () => {
     if (isAnimating) {
       return direction === "forward"
-        ? "opacity-0 translate-x-8"
-        : "opacity-0 -translate-x-8"
+        ? "opacity-0 translate-x-12 scale-95"
+        : "opacity-0 -translate-x-12 scale-95"
     }
-    return "opacity-100 translate-x-0"
+    return "opacity-100 translate-x-0 scale-100"
   }
 
-  // Floating particles component
+  // Floating particles component with more variety
   const FloatingParticles = () => (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {[...Array(20)].map((_, i) => (
+      {[...Array(30)].map((_, i) => (
         <div
           key={i}
-          className="absolute w-1 h-1 bg-primary/30 rounded-full"
+          className={`absolute rounded-full ${
+            i % 3 === 0 
+              ? "w-2 h-2 bg-green-400/20" 
+              : i % 3 === 1 
+                ? "w-1 h-1 bg-emerald-500/30"
+                : "w-1.5 h-1.5 bg-teal-400/25"
+          }`}
           style={{
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
-            animation: `float ${3 + Math.random() * 4}s ease-in-out infinite`,
-            animationDelay: `${Math.random() * 2}s`,
+            animation: `float ${4 + Math.random() * 6}s ease-in-out infinite`,
+            animationDelay: `${Math.random() * 3}s`,
           }}
         />
       ))}
@@ -242,7 +250,7 @@ export function Onboarding() {
       {/* Main Content */}
       <div className="flex-1 flex items-center justify-center p-6 relative z-10">
         <div
-          className={`w-full max-w-lg transition-all duration-300 ease-out ${getAnimationClass()}`}
+          className={`w-full max-w-lg transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${getAnimationClass()}`}
         >
           {/* Welcome Stage */}
           {stage === "welcome" && (
@@ -264,7 +272,6 @@ export function Onboarding() {
                 className="h-14 px-10 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 text-white font-semibold rounded-2xl shadow-lg shadow-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-primary/40 hover:scale-105 group"
               >
                 Get Started
-                <Sparkles className="w-5 h-5 ml-2 group-hover:rotate-12 transition-transform" />
               </Button>
               <p className="mt-8 text-sm text-muted-foreground">
                 Already have an account?{" "}
@@ -520,59 +527,24 @@ export function Onboarding() {
             </div>
           )}
 
-          {/* Silence Callers Stage */}
+          {/* Silence Callers Stage - Interactive iPhone Simulator */}
           {stage === "silence-callers" && (
-            <div>
-              <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold text-foreground mb-3">Silence Unknown Callers</h2>
-                <p className="text-muted-foreground">Let your phone auto-block spam. We'll screen the rest.</p>
+            <div className="flex flex-col items-center w-full">
+              <div className="text-center mb-8 w-full">
+                <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center border border-primary/20">
+                  <Smartphone className="w-8 h-8 text-primary" />
+                </div>
+                <h2 className="text-3xl font-bold text-foreground mb-2">Enable Silence Unknown Callers</h2>
+                <p className="text-muted-foreground text-base max-w-md mx-auto">
+                  Follow the interactive guide below and replicate the exact steps on your real iPhone
+                </p>
               </div>
               
-              {/* Interactive Settings Card */}
-              <div className="bg-card border border-border rounded-2xl overflow-hidden">
-                {/* Settings Header */}
-                <div className="flex items-center gap-3 p-4 border-b border-border">
-                  <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center">
-                    <Phone className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="font-semibold text-foreground">Settings</span>
-                </div>
-                
-                {/* Toggle Row */}
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-medium text-foreground">Silence Unknown Callers</span>
-                    <button
-                      onClick={() => setSilenceEnabled(!silenceEnabled)}
-                      className={`relative w-14 h-8 rounded-full transition-all duration-300 ${
-                        silenceEnabled 
-                          ? "bg-gradient-to-r from-green-500 to-emerald-500" 
-                          : "bg-secondary"
-                      }`}
-                    >
-                      <div
-                        className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 ${
-                          silenceEnabled ? "left-7" : "left-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Calls from unknown numbers will be silenced, sent to voicemail, and displayed on the Recents list.
-                  </p>
-                </div>
-              </div>
-              
-              {/* Hint Text */}
-              <div className="mt-6 text-center">
-                {silenceEnabled ? (
-                  <div className="flex items-center justify-center gap-2 text-primary">
-                    <Check className="w-5 h-5" />
-                    <span className="font-medium">Perfect! Do this in your real settings.</span>
-                  </div>
-                ) : (
-                  <p className="text-primary">Tap the toggle above to test it</p>
-                )}
+              <div className="w-full flex justify-center">
+                <IPhoneSimulator 
+                  onComplete={() => setSimulatorComplete(true)} 
+                  isActive={stage === "silence-callers"}
+                />
               </div>
             </div>
           )}
@@ -645,12 +617,38 @@ export function Onboarding() {
       <style jsx global>{`
         @keyframes float {
           0%, 100% {
-            transform: translateY(0) scale(1);
-            opacity: 0.3;
+            transform: translateY(0) translateX(0) scale(1);
+            opacity: 0.2;
+          }
+          25% {
+            transform: translateY(-15px) translateX(5px) scale(1.1);
+            opacity: 0.5;
           }
           50% {
-            transform: translateY(-20px) scale(1.2);
-            opacity: 0.6;
+            transform: translateY(-25px) translateX(-5px) scale(1.15);
+            opacity: 0.7;
+          }
+          75% {
+            transform: translateY(-10px) translateX(3px) scale(1.05);
+            opacity: 0.4;
+          }
+        }
+        
+        @keyframes pulse-glow {
+          0%, 100% {
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+          }
+          50% {
+            box-shadow: 0 0 40px rgba(34, 197, 94, 0.5);
+          }
+        }
+        
+        @keyframes shimmer {
+          0% {
+            background-position: -200% 0;
+          }
+          100% {
+            background-position: 200% 0;
           }
         }
       `}</style>
