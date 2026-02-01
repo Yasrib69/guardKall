@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { MessageCircle, X, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { MessageCircle, Send, X } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 
 interface Message {
   id: string
@@ -49,29 +49,42 @@ export function ChatBot() {
     setInputValue("")
     setIsLoading(true)
 
-    // Simulate bot response
-    setTimeout(() => {
-      const botResponses = [
-        "I'm here to help! Have you enabled the Silence Unknown Callers feature yet?",
-        "That's a great question! Let me know if you need help with any of the setup steps.",
-        "Thanks for letting me know! Is there anything else I can assist you with?",
-        "I'm always here if you have more questions about protecting your phone from spam calls.",
-        "Would you like tips on using the other safety features in GuardKall?",
-      ]
+    try {
+      const response = await fetch("http://127.0.0.1:4001/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: userMessage.text }),
+      })
 
-      const randomResponse =
-        botResponses[Math.floor(Math.random() * botResponses.length)]
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to fetch response")
+      }
+
+      const data = await response.json()
 
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: randomResponse,
+        text: data.response,
         sender: "bot",
         timestamp: new Date(),
       }
 
       setMessages((prev) => [...prev, botMessage])
+    } catch (error) {
+      console.error("Error sending message:", error)
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: `Error: ${error instanceof Error ? error.message : "Could not connect to server"}. Please ensure the backend is running.`,
+        sender: "bot",
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
       setIsLoading(false)
-    }, 500)
+    }
   }
 
   return (
@@ -157,16 +170,14 @@ export function ChatBot() {
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${
-                  message.sender === "user" ? "justify-end" : "justify-start"
-                }`}
+                className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"
+                  }`}
               >
                 <div
-                  className={`max-w-xs px-3 py-2 rounded-lg text-xs ${
-                    message.sender === "user"
-                      ? "bg-green-600 text-white rounded-br-none"
-                      : "bg-gray-800 text-gray-100 rounded-bl-none"
-                  }`}
+                  className={`max-w-xs px-3 py-2 rounded-lg text-xs ${message.sender === "user"
+                    ? "bg-green-600 text-white rounded-br-none"
+                    : "bg-gray-800 text-gray-100 rounded-bl-none"
+                    }`}
                 >
                   {message.text}
                 </div>

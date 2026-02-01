@@ -1,22 +1,28 @@
-import express from "express";
-import dotenv from "dotenv";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { getRandomQuestions, RED_FLAG_PATTERNS, SCORING_WEIGHTS } from "./questions.js";
+import cors from "cors";
+import dotenv from "dotenv";
+import express from "express";
+import { getRandomQuestions, SCORING_WEIGHTS } from "./questions.js";
 
 dotenv.config();
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 const PORT = Number(process.env.PORT || 4001);
 
 // Initialize Gemini (Fallback)
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
-const model = genAI.getGenerativeModel({
-  model: "gemini-2.0-flash",
+const jsonModel = genAI.getGenerativeModel({
+  model: "gemini-flash-latest",
   generationConfig: {
     responseMimeType: "application/json",
   }
+});
+
+const supportModel = genAI.getGenerativeModel({
+  model: "gemini-flash-latest",
 });
 
 const SYSTEM_PROMPT = `
@@ -62,6 +68,24 @@ Verification Triggers (Action: VERIFY):
 - Caller claims to be from a bank, IRS, police, or tech support
 `;
 
+const SUPPORT_SYSTEM_PROMPT = `
+You are the Support Bot for GuardKall, an AI concierge for phone scams.
+Your goal is to help users set up their account, understand how GuardKall protecs them, and usage instructions.
+
+GuardKall features:
+- Screens unknown callers using an AI agent.
+- Verifies callers and connects them if safe, or blocks them if scam.
+- Features 'Silence Unknown Callers' to redirect calls to GuardKall.
+- Provides real-time transcripts of screened calls.
+
+Common questions:
+- How to enable? Turn on "Silence Unknown Callers" in iPhone settings and set up Call Forwarding to the GuardKall number.
+- Is it free? Currently in beta/hackathon mode.
+- Does it work on Android? Currently focused on iOS but works with any carrier that supports conditional call forwarding.
+
+Be helpful, concise, and friendly. Use emojis occasionally.
+`;
+
 async function analyzeWithOpenRouter(transcript: string) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OpenRouter API key missing");
@@ -94,7 +118,7 @@ async function analyzeWithOpenRouter(transcript: string) {
 }
 
 async function analyzeWithGemini(transcript: string) {
-  const result = await model.generateContent([
+  const result = await jsonModel.generateContent([
     SYSTEM_PROMPT,
     `Transcript: "${transcript}"`
   ]);
@@ -102,6 +126,15 @@ async function analyzeWithGemini(transcript: string) {
   const responseText = result.response.text();
   const jsonStr = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
   return JSON.parse(jsonStr);
+}
+
+async function chatWithGemini(userMessage: string) {
+  const result = await supportModel.generateContent([
+    SUPPORT_SYSTEM_PROMPT,
+    `User: "${userMessage}"`
+  ]);
+
+  return result.response.text();
 }
 
 app.get("/health", (_req, res) => {
@@ -208,6 +241,25 @@ app.post("/analyze", async (req, res) => {
   } catch (error) {
     console.error("[Brain] Error:", error);
     res.status(500).json({ error: "Analysis failed" });
+  }
+});
+
+
+app.post("/chat", async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message) {
+      return res.status(400).json({ error: "Message is required" });
+    }
+
+    console.log(`[Brain] Chat request: "${message}"`);
+    const response = await chatWithGemini(message);
+    console.log(`[Brain] Chat response: "${response}"`);
+
+    res.json({ response });
+  } catch (error) {
+    console.error("[Brain] Chat Error:", error);
+    res.status(500).json({ error: "Chat processing failed", details: error instanceof Error ? error.message : String(error) });
   }
 });
 
