@@ -141,8 +141,17 @@ async function getAllUsers(): Promise<Array<{ id: string; firstName: string; las
   return [];
 }
 
-// Get the user to route calls/SMS to - uses logged-in user's phone
-// When a user signs up, their phone becomes the active destination
+// DISABLED: Dynamic routing causes team members to steal each other's calls
+// When ready for production, uncomment the dynamic version below
+async function getTargetUserPhone(): Promise<string> {
+  // HARDCODED for demo stability - change this to your demo phone number
+  const DEMO_PHONE = "+17342721456"; // Kobby's number - update as needed
+  console.log(`[Routing] Using HARDCODED phone: ${DEMO_PHONE}`);
+  return DEMO_PHONE;
+}
+
+/*
+// DYNAMIC VERSION - uncomment when ready for multi-user
 async function getTargetUserPhone(): Promise<string> {
   // Get users from database (ordered by CREATED_AT DESC, so newest first)
   const users = await getAllUsers();
@@ -158,6 +167,7 @@ async function getTargetUserPhone(): Promise<string> {
   console.warn("[Routing] No users registered - SMS will be skipped");
   return "";
 }
+*/
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true, provider: "teli" });
