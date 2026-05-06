@@ -1,44 +1,114 @@
-# Guardkall
+# GuardKall
 
-AI concierge for phone scams. Unknown callers are screened by an AI agent, verified, and then either connected to you or blocked with a report.
+GuardKall is an AI-powered phone scam interception platform designed to screen unknown callers before they reach the user. The system uses conversational AI, behavioral analysis, and real-time safety evaluation to determine whether a caller should be connected, flagged, or blocked.
 
-## Hackathon prize targets
-- DigitalOcean: telephony server on a DO Droplet
-- Gemini API (Google Cloud / AI Studio, optionally via OpenRouter): real-time safety officer
-- ElevenLabs: realistic time-waster voice
-- Snowflake API: scam script memory
-- OpenRouter: model routing and testing (credits)
+The project focuses on combining AI-driven decision making with scalable backend infrastructure to improve digital safety and reduce scam-related risks.
 
-## Repo layout
-- docs/ - product, architecture, APIs, and integration specs
-- services/teli/ - Teli adapter (voice agent setup + call status)
-- services/brain/ - LLM safety analysis
-- services/data/ - Snowflake storage + script matching
-- frontend/ - Next.js UI (current demo)
-- legacy/ - Twilio prototype + legacy scripts
+---
 
-## Quick start (local)
-1) Copy env template and fill in keys
+## Features
 
-```
+* AI-assisted screening for unknown callers
+* Real-time conversational safety analysis
+* Behavioral risk scoring and verification workflows
+* Scam pattern detection and reporting
+* Data storage and script matching for repeated scam behaviors
+* Modular backend architecture for future scalability
+
+---
+
+## Tech Stack
+
+### Backend & Infrastructure
+
+* Python
+* Node.js
+* REST APIs
+* Snowflake
+* DigitalOcean
+
+### AI & Analysis
+
+* Gemini API
+* OpenRouter
+* Conversational AI workflows
+* Behavioral analysis and risk scoring
+
+### Frontend
+
+* Next.js
+
+### Development Tools
+
+* Git & GitHub
+
+---
+
+## Architecture
+
+### Repository Structure
+
+* `docs/` — Product specifications, architecture diagrams, API documentation
+* `services/teli/` — Voice call integration and telephony workflows
+* `services/brain/` — AI safety analysis and conversational evaluation
+* `services/data/` — Snowflake integration and scam behavior storage
+* `frontend/` — Next.js frontend application
+* `legacy/` — Earlier Twilio-based prototype implementations
+
+---
+
+## System Overview
+
+GuardKall analyzes incoming calls using AI-assisted conversational workflows and behavioral signals. The platform evaluates suspicious patterns in real time and generates dynamic risk assessments before forwarding calls to the user.
+
+The long-term goal is to build a scalable security-focused communication platform capable of identifying and adapting to evolving scam behaviors.
+
+---
+
+## Future Improvements
+
+* Advanced NLP integration
+* Real-time voice transcription
+* Expanded scam detection datasets
+* Mobile application support
+* Dashboard analytics and reporting
+* Cloud-native deployment scaling
+
+---
+
+## Local Development
+
+### Environment Setup
+
+```bash
 cp .env.example .env
 ```
 
-2) Install deps per service (example Teli adapter)
+### Start Telephony Service
 
-```
+```bash
 cd services/teli
 npm install
 npm run dev
 ```
 
-3) Run the UI (Next.js)
+### Start Frontend
 
-```
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-## Status
-This repo is a starter scaffold. Use the docs/ specs to implement the end-to-end flow.
+---
+
+## Project Status
+
+GuardKall is currently under active development as a research and engineering project focused on AI-assisted cybersecurity and scam prevention systems.
+
+---
+
+## Author
+
+Salma Ibrahim
+Computer Science Student — Eastern Michigan University
