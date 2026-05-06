@@ -574,17 +574,16 @@ export function Onboarding() {
 
           {/* Complete Stage */}
           {stage === "complete" && (
-            <div className="text-center">
-              <div className="mb-8 relative">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-32 h-32 bg-primary/20 rounded-full blur-2xl animate-pulse" />
-                </div>
-                <div className="relative w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-primary/30">
-                  <Check className="w-12 h-12 text-white" />
-                </div>
+            <div className="text-center p-8 rounded-3xl" style={{ backgroundColor: '#f0f4ec' }}>
+              <div className="mb-6 relative">
+                <img
+                  src="/success-animation.gif"
+                  alt="Success"
+                  className="w-48 h-48 mx-auto object-contain"
+                />
               </div>
-              <h2 className="text-3xl font-bold text-foreground mb-3">You're all set!</h2>
-              <p className="text-lg text-muted-foreground mb-8 max-w-sm mx-auto">
+              <h2 className="text-3xl font-bold text-gray-800 mb-3">You're all set!</h2>
+              <p className="text-lg text-gray-600 mb-8 max-w-sm mx-auto">
                 GuardKall is now protecting you from scam calls. Stay safe, {firstName}!
               </p>
               <Button

@@ -250,6 +250,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.warn("[User] Failed to persist:", err)
       }
 
+      // DISABLED: Dynamic Teli agent update - causes team members to steal each other's calls
+      // Uncomment this block to re-enable dynamic routing when ready for production
+      /*
       // Update Teli agent transfer number
       try {
         await fetch(
@@ -286,6 +289,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         console.warn("[User] Failed to update Teli agent:", err)
       }
+      */
+      console.log(`[User] Teli agent update DISABLED - using hardcoded number`)
     }
   }
 
